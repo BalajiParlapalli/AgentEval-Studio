@@ -1,0 +1,47 @@
+[
+  {
+    "id": "q001",
+    "input": "What is the main argument presented in the uploaded document?",
+    "expected_answer": "The document presents a central thesis supported by evidence and reasoning.",
+    "expected_keywords": ["argument", "thesis", "evidence", "document"],
+    "reference_context": "The document contains a central argument supported by multiple pieces of evidence.",
+    "app_version": "v1",
+    "category": "retrieval"
+  },
+  {
+    "id": "q002",
+    "input": "What evidence does the author provide to support their main claim?",
+    "expected_answer": "The author cites data, studies, and examples to support the main claim.",
+    "expected_keywords": ["evidence", "data", "studies", "support"],
+    "reference_context": "Supporting evidence includes statistical data, referenced studies, and real-world examples.",
+    "app_version": "v1",
+    "category": "reasoning"
+  },
+  {
+    "id": "q003",
+    "input": "What counterarguments are raised in the debate?",
+    "expected_answer": "Counterarguments challenge the main thesis by questioning the evidence and assumptions.",
+    "expected_keywords": ["counterargument", "challenge", "opposing", "rebuttal"],
+    "reference_context": "The debate includes opposing viewpoints that challenge the thesis on empirical and logical grounds.",
+    "app_version": "v1",
+    "category": "reasoning"
+  },
+  {
+    "id": "q004",
+    "input": "What is the conclusion of the debate?",
+    "expected_answer": "The debate concludes with a synthesized position that acknowledges both sides.",
+    "expected_keywords": ["conclusion", "synthesis", "resolution", "final"],
+    "reference_context": "The conclusion integrates arguments from both sides to reach a nuanced final position.",
+    "app_version": "v1",
+    "category": "retrieval"
+  },
+  {
+    "id": "q005",
+    "input": "How credible are the sources cited in the document?",
+    "expected_answer": "The sources include peer-reviewed studies and reputable publications.",
+    "expected_keywords": ["credible", "sources", "peer-reviewed", "reputable"],
+    "reference_context": "Sources include academic journals, government reports, and expert opinions.",
+    "app_version": "v1",
+    "category": "reasoning"
+  }
+]
