@@ -6,7 +6,7 @@ colorTo: purple
 sdk: docker
 pinned: false
 license: mit
-short_description: Evaluation & observability dashboard for RAG apps and AI agents
+short_description: Eval dashboard for RAG apps and AI agents
 ---
 
 # 🧪 AgentEval Studio
