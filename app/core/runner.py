@@ -45,6 +45,7 @@ async def _call_target(
     payload = {
         "question": case.input,
         "app_version": case.app_version,
+        # RAG Debate Arena also accepts just "question"
     }
     start = time.perf_counter()
     async with httpx.AsyncClient(timeout=timeout) as client:
@@ -56,16 +57,37 @@ async def _call_target(
     except Exception:
         data = {}
 
-    answer = (
-        data.get("answer")
-        or data.get("response")
-        or data.get("output")
-        or data.get("result")
-        or r.text[:2000]
-    )
-    contexts = data.get("contexts") or data.get("retrieved_contexts") or []
-    if isinstance(contexts, str):
-        contexts = [contexts]
+    # Normalise response — support multiple schema shapes:
+    # 1. Standard:      {"answer": "...", "contexts": [...]}
+    # 2. RAG Debate:    {"verdict": "...", "pro": {"argument": ..., "evidence": [...]}, "anti": {...}}
+    # 3. Generic:       {"response"/"output"/"result": "..."}
+    if "verdict" in data:
+        # RAG Debate Arena schema
+        verdict = data.get("verdict", "")
+        pro = data.get("pro", {})
+        anti = data.get("anti", {})
+        answer = (
+            f"Verdict: {verdict}\n\n"
+            f"Pro: {pro.get('argument', '')}\n\n"
+            f"Anti: {anti.get('argument', '')}"
+        ).strip() or r.text[:2000]
+        pro_ev = pro.get("evidence", [])
+        anti_ev = anti.get("evidence", [])
+        if isinstance(pro_ev, str): pro_ev = [pro_ev]
+        if isinstance(anti_ev, str): anti_ev = [anti_ev]
+        contexts = pro_ev + anti_ev
+    else:
+        answer = (
+            data.get("answer")
+            or data.get("response")
+            or data.get("output")
+            or data.get("result")
+            or r.text[:2000]
+        )
+        contexts = data.get("contexts") or data.get("retrieved_contexts") or []
+        if isinstance(contexts, str):
+            contexts = [contexts]
+
     token_count = data.get("token_count") or data.get("tokens") or estimate_tokens(answer)
 
     return {
