@@ -61,14 +61,35 @@ def estimate_tokens(text: str) -> int:
 # ─── Gemini LLM-judge metrics ─────────────────────────────────────────────────
 
 def _gemini_score(prompt: str, api_key: str) -> float:
-    """Call Gemini Flash and parse a 0-1 float from the response."""
+    """Call Gemini Flash and parse a 0-1 float from the response.
+    Supports both legacy AIzaSy keys and new AQ. auth keys.
+    """
     try:
-        import google.generativeai as genai
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel("gemini-1.5-flash")
-        response = model.generate_content(prompt)
-        text = response.text.strip()
-        # Extract first float/int from response
+        import requests as _requests
+        # Detect key type
+        if api_key.startswith("AQ."):
+            # New OAuth2-style auth key — use Bearer token in header
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+                "x-goog-api-key": api_key,
+            }
+            url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
+            payload = {"contents": [{"parts": [{"text": prompt}]}]}
+            r = _requests.post(url, headers=headers, json=payload, timeout=30)
+        else:
+            # Legacy AIzaSy key — use query param
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+            headers = {"Content-Type": "application/json"}
+            payload = {"contents": [{"parts": [{"text": prompt}]}]}
+            r = _requests.post(url, headers=headers, json=payload, timeout=30)
+
+        if r.status_code != 200:
+            logger.error("Gemini API error %d: %s", r.status_code, r.text[:200])
+            return 0.0
+
+        data = r.json()
+        text = data["candidates"][0]["content"]["parts"][0]["text"].strip()
         match = re.search(r"\b([01](?:\.\d+)?|0\.\d+)\b", text)
         if match:
             return round(float(match.group(1)), 4)
