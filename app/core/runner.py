@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 async def _call_target(
     target_url: str,
     case: TestCase,
-    timeout: float = 30.0
+    timeout: float = 60.0
 ) -> dict:
     """
     POST to the target RAG endpoint and return a normalised dict:
@@ -114,7 +114,7 @@ async def run_single_case(
     except Exception as e:
         logger.error("Target call failed for case %s: %s", case.id, e)
         raw = {
-            "answer": f"[ERROR] {e}",
+            "answer": f"[ERROR] {type(e).__name__}: {e}",
             "contexts": [],
             "token_count": 0,
             "latency_ms": 0.0,
