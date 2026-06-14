@@ -123,7 +123,7 @@ async def run_single_case(
     import os
     # Always prefer env var if no key passed — reads HF Space secret
     if not gemini_api_key:
-        gemini_api_key = os.getenv("GEMINI_API_KEY")
+        gemini_api_key = os.getenv("GROQ_API_KEY") or os.getenv("GEMINI_API_KEY")
     result_id = str(uuid.uuid4())
 
     # 1. Call target

@@ -33,7 +33,7 @@ async def execute_run(
         return
     # Use env var as fallback (set via HF Space secrets)
     if not gemini_api_key:
-        gemini_api_key = os.getenv("GEMINI_API_KEY")
+        gemini_api_key = os.getenv("GROQ_API_KEY") or os.getenv("GEMINI_API_KEY")
 
     run.status = "running"
     db.commit()

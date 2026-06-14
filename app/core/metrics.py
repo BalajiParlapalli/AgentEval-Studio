@@ -60,43 +60,57 @@ def estimate_tokens(text: str) -> int:
 
 # ─── Gemini LLM-judge metrics ─────────────────────────────────────────────────
 
-def _gemini_score(prompt: str, api_key: str) -> float:
-    """Call Gemini Flash and parse a 0-1 float from the response.
-    Supports both legacy AIzaSy keys and new AQ. auth keys.
+def _llm_score(prompt: str, api_key: str) -> float:
+    """LLM-as-judge scorer.
+    Supports:
+    - Groq (gsk_...)  → llama-3.1-8b-instant, free tier
+    - Gemini AIzaSy   → gemini-1.5-flash (legacy key format)
+    Falls back to 0.5 on any error.
     """
     try:
-        import requests as _requests
-        # Detect key type
-        if api_key.startswith("AQ."):
-            # New OAuth2-style auth key — use Bearer token in header
+        import requests as _req
+
+        if api_key.startswith("gsk_"):
+            # Groq — free, fast, reliable
+            url = "https://api.groq.com/openai/v1/chat/completions"
             headers = {
                 "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json",
-                "x-goog-api-key": api_key,
             }
-            url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
-            payload = {"contents": [{"parts": [{"text": prompt}]}]}
-            r = _requests.post(url, headers=headers, json=payload, timeout=30)
-        else:
-            # Legacy AIzaSy key — use query param
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
-            headers = {"Content-Type": "application/json"}
-            payload = {"contents": [{"parts": [{"text": prompt}]}]}
-            r = _requests.post(url, headers=headers, json=payload, timeout=30)
+            payload = {
+                "model": "llama-3.1-8b-instant",
+                "messages": [{"role": "user", "content": prompt}],
+                "max_tokens": 10,
+                "temperature": 0,
+            }
+            r = _req.post(url, headers=headers, json=payload, timeout=30)
+            if r.status_code != 200:
+                logger.error("Groq error %d: %s", r.status_code, r.text[:200])
+                return 0.0
+            text = r.json()["choices"][0]["message"]["content"].strip()
 
-        if r.status_code != 200:
-            logger.error("Gemini API error %d: %s", r.status_code, r.text[:200])
+        elif api_key.startswith("AIza"):
+            # Legacy Gemini key
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+            payload = {"contents": [{"parts": [{"text": prompt}]}]}
+            r = _req.post(url, headers={"Content-Type": "application/json"}, json=payload, timeout=30)
+            if r.status_code != 200:
+                logger.error("Gemini error %d: %s", r.status_code, r.text[:200])
+                return 0.0
+            text = r.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
+
+        else:
+            logger.warning("Unknown API key format — skipping LLM judge")
             return 0.0
 
-        data = r.json()
-        text = data["candidates"][0]["content"]["parts"][0]["text"].strip()
         match = re.search(r"\b([01](?:\.\d+)?|0\.\d+)\b", text)
         if match:
             return round(float(match.group(1)), 4)
-        logger.warning("Gemini returned non-numeric: %s", text[:100])
+        logger.warning("LLM judge returned non-numeric: %s", text[:100])
         return 0.5
+
     except Exception as e:
-        logger.error("Gemini call failed: %s", e)
+        logger.error("LLM judge call failed: %s", e)
         return 0.0
 
 
@@ -135,7 +149,7 @@ Answer:
 Faithfulness measures whether every claim in the answer is supported by the context.
 Respond with ONLY a single decimal number between 0.0 and 1.0.
 1.0 = fully grounded, 0.0 = completely hallucinated."""
-    return _gemini_score(prompt, api_key)
+    return _llm_score(prompt, api_key)
 
 
 def answer_relevancy_score(
@@ -160,7 +174,7 @@ Answer: {response[:1000]}
 Does the answer directly and completely address the question?
 Respond with ONLY a single decimal between 0.0 and 1.0.
 1.0 = perfectly relevant, 0.0 = completely irrelevant."""
-    return _gemini_score(prompt, api_key)
+    return _llm_score(prompt, api_key)
 
 
 def context_recall_score(
@@ -192,7 +206,7 @@ Retrieved context:
 Does the retrieved context contain enough information to derive the expected answer?
 Respond with ONLY a single decimal between 0.0 and 1.0.
 1.0 = all needed info present, 0.0 = no relevant info."""
-    return _gemini_score(prompt, api_key)
+    return _llm_score(prompt, api_key)
 
 
 def compute_overall(scores: dict) -> float:

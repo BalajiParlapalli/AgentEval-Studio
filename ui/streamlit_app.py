@@ -80,7 +80,7 @@ with st.sidebar:
         label_visibility="collapsed",
     )
     st.divider()
-    st.caption("v1.0 · Gemini-powered")
+    st.caption("v1.0 · LLM-judge (Groq/Gemini)")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -344,7 +344,7 @@ elif page == "🚀 New Run":
                 help="POST endpoint that accepts {question, app_version} and returns {answer, contexts}",
             )
             pass_threshold = st.slider("Pass threshold (overall score)", 0.0, 1.0, 0.6, 0.05)
-            st.caption("🔐 Gemini API key is configured server-side via HF Space secrets.")
+            st.caption("🔐 LLM judge key set via HF Space secret: GROQ_API_KEY (Groq) or GEMINI_API_KEY (Gemini AIzaSy).")
 
         st.markdown("**Target API contract** — your RAG app should accept:")
         st.code('POST /your/endpoint\n{"question": "...", "app_version": "..."}\n→ {"answer": "...", "contexts": ["chunk1", ...], "token_count": 123}', language="json")
