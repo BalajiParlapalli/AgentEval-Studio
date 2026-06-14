@@ -89,7 +89,16 @@ async def _call_target(
                     out.append(str(item))
             return out
 
-        contexts = flatten_evidence(pro.get("evidence", [])) +                    flatten_evidence(anti.get("evidence", []))
+        # evidence[] is empty in RAG Debate Arena — use arguments + cross_exam as contexts
+        cross = data.get("cross_exam", {})
+        attack_pro = cross.get("attack_on_pro", [])
+        attack_anti = cross.get("attack_on_anti", [])
+
+        contexts = [
+            pro.get("argument", ""),
+            anti.get("argument", ""),
+        ] + (attack_pro if isinstance(attack_pro, list) else [])           + (attack_anti if isinstance(attack_anti, list) else [])
+        contexts = [c for c in contexts if c]  # remove empty strings
     else:
         answer = (
             data.get("answer")
