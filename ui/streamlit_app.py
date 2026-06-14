@@ -174,10 +174,7 @@ if page == "🏠 Dashboard":
             "Relevancy": "{:.0%}",
             "Recall": "{:.0%}",
             "Latency (ms)": "{:.0f}",
-        }).background_gradient(
-            subset=["Pass Rate", "Faithfulness", "Relevancy", "Recall"],
-            cmap="RdYlGn", vmin=0, vmax=1,
-        )
+        })
         st.dataframe(styled, use_container_width=True, hide_index=True)
     else:
         st.info("No completed runs yet. Upload a dataset and start a run to see results here.")
@@ -249,18 +246,75 @@ elif page == "📂 Datasets":
 
         ds_name = st.text_input("Dataset name", placeholder="RAG Debate Arena — Benchmark v1")
         ds_desc = st.text_input("Description (optional)")
-        uploaded = st.file_uploader("Upload JSON or CSV", type=["json", "csv"])
 
-        if st.button("Upload Dataset", type="primary") and uploaded and ds_name:
-            with st.spinner("Uploading..."):
-                result = api(
-                    "POST",
-                    f"/datasets/upload?name={ds_name}",
-                    files={"file": (uploaded.name, uploaded.getvalue(), uploaded.type)},
-                )
-            if result:
-                st.success(f"✅ Dataset '{result['name']}' uploaded with {result['row_count']} cases.")
-                st.rerun()
+        input_method = st.radio(
+            "Input method",
+            ["📋 Paste JSON", "📄 Paste CSV"],
+            horizontal=True,
+            help="File upload is disabled on HF Spaces (403). Paste your data directly instead.",
+        )
+        st.info("💡 Tip: download the sample template above, copy its contents, and paste here.")
+
+        pasted_json = None
+        pasted_csv = None
+        if input_method == "📋 Paste JSON":
+            pasted_json = st.text_area(
+                "Paste JSON array here",
+                height=220,
+                placeholder='[{"id":"q001","input":"Your question?","expected_answer":"Expected answer.","expected_keywords":"kw1,kw2"}]',
+            )
+        else:
+            pasted_csv = st.text_area(
+                "Paste CSV content here (with header row)",
+                height=220,
+                placeholder="id,input,expected_answer,expected_keywords\nq001,What is X?,X is Y.,kw1,kw2",
+            )
+
+        if st.button("Create Dataset", type="primary") and ds_name:
+            if not pasted_json and not pasted_csv:
+                st.error("Please paste your dataset content.")
+            else:
+              with st.spinner("Parsing and saving..."):
+                import io, csv as _csv
+                if pasted_json:
+                    content_bytes = pasted_json.encode()
+                    fname = "pasted.json"
+                else:
+                    content_bytes = pasted_csv.encode()
+                    fname = "pasted.csv"
+                try:
+                    if fname.endswith(".json"):
+                        raw = json.loads(content_bytes)
+                        if isinstance(raw, dict) and "cases" in raw:
+                            raw = raw["cases"]
+                    elif fname.endswith(".csv"):
+                        reader = _csv.DictReader(io.StringIO(content_bytes.decode()))
+                        raw = list(reader)
+                    else:
+                        st.error("Only .json or .csv supported.")
+                        raw = None
+                    if raw is not None:
+                        cases = []
+                        for i, row in enumerate(raw):
+                            kws = row.get("expected_keywords", [])
+                            if isinstance(kws, str):
+                                kws = [k.strip() for k in kws.split(",") if k.strip()]
+                            cases.append({
+                                "id": row.get("id", f"case_{i}"),
+                                "input": row.get("input", row.get("question", "")),
+                                "expected_answer": row.get("expected_answer", row.get("answer", "")),
+                                "expected_keywords": kws,
+                                "reference_context": row.get("reference_context", ""),
+                                "app_version": row.get("app_version", "v1"),
+                                "category": row.get("category", "general"),
+                            })
+                        payload = {"name": ds_name, "description": ds_desc, "cases": cases}
+                        result = api("POST", "/datasets/", json=payload)
+                        if result:
+                            st.success(f"✅ Dataset '{result['name']}' created with {result['row_count']} cases.")
+                            st.rerun()
+                except Exception as e:
+                    st.error(f"Parse error: {e}")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -423,10 +477,7 @@ elif page == "📊 Results":
                 "context_recall": "{:.0%}",
                 "rouge_l": "{:.0%}",
                 "latency_ms": "{:.0f}",
-            }).background_gradient(
-                subset=["overall_score", "faithfulness", "answer_relevancy"],
-                cmap="RdYlGn", vmin=0, vmax=1,
-            ),
+            }),
             use_container_width=True,
             hide_index=True,
         )
@@ -473,6 +524,19 @@ elif page == "📊 Results":
                 height=250,
             )
             st.plotly_chart(fig2, use_container_width=True)
+
+        # Debug: show raw response from RAG app
+        st.divider()
+        with st.expander("🔧 Debug — Raw API response for selected case"):
+            if case_data:
+                st.json({
+                    "actual_response": case_data["actual_response"],
+                    "retrieved_contexts": case_data["retrieved_contexts"],
+                    "token_count": case_data["token_count"],
+                    "latency_ms": case_data["latency_ms"],
+                    "raw_scores": case_data["raw_scores"],
+                })
+                st.info("💡 If scores are near 0%, check that your RAG app returns the correct JSON schema shown in 'New Run' page.")
 
         # Export
         st.divider()
@@ -586,10 +650,7 @@ elif page == "🏆 Leaderboard":
             "Context Recall": "{:.0%}",
             "ROUGE-L": "{:.0%}",
             "Avg Latency (ms)": "{:.0f}",
-        }).background_gradient(
-            subset=["Overall ↑", "Faithfulness", "Answer Relevancy", "Context Recall"],
-            cmap="RdYlGn", vmin=0, vmax=1,
-        ).highlight_max(subset=["Overall ↑"], color="#2d5a27"),
+        }),
         use_container_width=True,
     )
 
