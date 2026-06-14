@@ -343,8 +343,8 @@ elif page == "🚀 New Run":
                 placeholder="https://your-rag-app.hf.space/api/query",
                 help="POST endpoint that accepts {question, app_version} and returns {answer, contexts}",
             )
-            gemini_key = st.text_input("Gemini API Key", type="password", help="For LLM-judge metrics (faithfulness, relevancy, recall). Leave blank for heuristic-only.")
             pass_threshold = st.slider("Pass threshold (overall score)", 0.0, 1.0, 0.6, 0.05)
+            st.caption("🔐 Gemini API key is configured server-side via HF Space secrets.")
 
         st.markdown("**Target API contract** — your RAG app should accept:")
         st.code('POST /your/endpoint\n{"question": "...", "app_version": "..."}\n→ {"answer": "...", "contexts": ["chunk1", ...], "token_count": 123}', language="json")
@@ -362,8 +362,6 @@ elif page == "🚀 New Run":
                 "target_url": target_url,
                 "pass_threshold": pass_threshold,
             }
-            if gemini_key:
-                payload["gemini_api_key"] = gemini_key
 
             result = api("POST", "/runs/", json=payload)
             if result:

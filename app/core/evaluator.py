@@ -1,6 +1,7 @@
 """
 Evaluator: orchestrates a full eval run over a dataset, saves results to DB.
 """
+import os
 import uuid
 import asyncio
 import logging
@@ -30,6 +31,10 @@ async def execute_run(
     if not run:
         logger.error("Run %s not found", run_id)
         return
+    # Use env var as fallback (set via HF Space secrets)
+    if not gemini_api_key:
+        gemini_api_key = os.getenv("GEMINI_API_KEY")
+
     run.status = "running"
     db.commit()
 
