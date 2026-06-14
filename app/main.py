@@ -28,7 +28,12 @@ app.include_router(runs_router, prefix="/api/v1")
 
 @app.on_event("startup")
 def on_startup():
+    import os, logging
     init_db()
+    key = os.getenv("GEMINI_API_KEY", "")
+    logging.getLogger(__name__).info(
+        "GEMINI_API_KEY: %s", "SET (len=%d)" % len(key) if key else "NOT SET — heuristic fallback active"
+    )
 
 
 @app.get("/health")

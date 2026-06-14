@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 async def _call_target(
     target_url: str,
     case: TestCase,
-    timeout: float = 60.0
+    timeout: float = 120.0
 ) -> dict:
     """
     POST to the target RAG endpoint and return a normalised dict:
@@ -71,11 +71,25 @@ async def _call_target(
             f"Pro: {pro.get('argument', '')}\n\n"
             f"Anti: {anti.get('argument', '')}"
         ).strip() or r.text[:2000]
-        pro_ev = pro.get("evidence", [])
-        anti_ev = anti.get("evidence", [])
-        if isinstance(pro_ev, str): pro_ev = [pro_ev]
-        if isinstance(anti_ev, str): anti_ev = [anti_ev]
-        contexts = pro_ev + anti_ev
+
+        def flatten_evidence(ev):
+            """Evidence can be list of str, list of dicts, or str."""
+            if not ev:
+                return []
+            if isinstance(ev, str):
+                return [ev]
+            out = []
+            for item in ev:
+                if isinstance(item, str):
+                    out.append(item)
+                elif isinstance(item, dict):
+                    # e.g. {"text": "...", "source": "..."}
+                    out.append(item.get("text") or item.get("content") or str(item))
+                else:
+                    out.append(str(item))
+            return out
+
+        contexts = flatten_evidence(pro.get("evidence", [])) +                    flatten_evidence(anti.get("evidence", []))
     else:
         answer = (
             data.get("answer")
@@ -106,6 +120,10 @@ async def run_single_case(
     pass_threshold: float = 0.6,
 ) -> dict:
     """Run one test case end-to-end and return a result dict."""
+    import os
+    # Always prefer env var if no key passed — reads HF Space secret
+    if not gemini_api_key:
+        gemini_api_key = os.getenv("GEMINI_API_KEY")
     result_id = str(uuid.uuid4())
 
     # 1. Call target
