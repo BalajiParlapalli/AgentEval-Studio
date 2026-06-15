@@ -1,66 +1,124 @@
----
-title: AgentEval Studio
-emoji: 🧪
-colorFrom: indigo
-colorTo: purple
-sdk: docker
-pinned: false
-license: mit
-short_description: Eval dashboard for RAG apps and AI agents
----
-
 # 🧪 AgentEval Studio
 
-> Open-source evaluation and observability dashboard for AI agents and RAG systems.
+> Open-source evaluation and observability dashboard for RAG apps and AI agents.
 
-Benchmark your RAG app or AI agent across **groundedness, retrieval quality, latency, token usage, and prompt versions** using golden datasets and automated metrics.
+[![HF Space](https://img.shields.io/badge/🤗%20HuggingFace-Live%20Demo-blue)](https://huggingface.co/spaces/BalajiBaluP/AgentEval-Studio)
+[![Python](https://img.shields.io/badge/Python-3.12-green)](https://python.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688)](https://fastapi.tiangolo.com)
+[![Streamlit](https://img.shields.io/badge/Streamlit-1.40-FF4B4B)](https://streamlit.io)
 
-## Features (V1 + V2)
+---
 
-- **Upload golden datasets** (CSV or JSON)
-- **Run evaluations** against any HTTP endpoint
-- **6 metrics**: Faithfulness, Answer Relevancy, Context Recall, ROUGE-L, Keyword Coverage, Latency
-- **LLM-as-judge** via Gemini Flash (optional, bring your own key)
-- **Version leaderboard**: compare prompt/model versions side-by-side
-- **Per-case drill-down**: inspect each input/response/context
-- **Export results** as CSV
+## What it does
 
-## Target API Contract
+Stop guessing if your AI app works. Start measuring it.
 
-Your RAG app should expose a POST endpoint:
+AgentEval Studio sends test questions to your AI app, scores the responses automatically, and shows you exactly where it fails across 5 metrics, per question, with version comparison.
 
-```json
-POST /your/endpoint
-{ "question": "...", "app_version": "v1" }
+| Metric | What it measures |
+|---|---|
+| **Faithfulness** | Did the AI use real info or hallucinate? |
+| **Answer Relevancy** | Did it actually answer the question? |
+| **Context Recall** | Did it retrieve the right material? |
+| **ROUGE-L** | Word overlap with expected answer |
+| **Keyword Coverage** | Key terms present in response |
 
-→ { "answer": "...", "contexts": ["chunk1", "chunk2"], "token_count": 123 }
-```
+---
 
-`contexts` and `token_count` are optional but enable richer metrics.
+## Live Results — RAG Debate Arena
+
+| Metric | Score |
+|---|---|
+| Pass Rate | 100% |
+| Faithfulness | 86% |
+| Answer Relevancy | 88% |
+| Context Recall | 88% |
+| Avg Latency | 37s |
+
+---
 
 ## Stack
 
 - **FastAPI** — evaluation backend
 - **Streamlit** — dashboard UI
-- **SQLite** — result storage
-- **Gemini Flash** — LLM-judge (optional)
-- **Custom metrics** — ROUGE-L, keyword coverage, heuristic fallbacks
+- **SQLite** — run history storage
+- **Groq (llama-3.1-8b)** — free LLM-as-judge
+- **Docker** — HuggingFace Spaces deployment
 
-## Local Development
+---
+
+## Quickstart
 
 ```bash
 pip install -r requirements.txt
 
-# Terminal 1 — Backend
+# Terminal 1
 uvicorn app.main:app --reload --port 8000
 
-# Terminal 2 — UI
+# Terminal 2
 streamlit run ui/streamlit_app.py
 ```
 
-## Adding Your RAG Debate Arena
+Set your free Groq key from [console.groq.com](https://console.groq.com):
+```bash
+export GROQ_API_KEY=gsk_...
+```
 
-1. Deploy your RAG app and note the `/query` endpoint URL
-2. Upload `datasets/rag_debate_sample.json` as a starting dataset
-3. Run an eval pointing at your endpoint
-4. Iterate on prompts and compare versions in the Leaderboard
+---
+
+## ⚠️ HF Free Tier Note
+
+The demo evaluates [RAG Debate Arena](https://huggingface.co/spaces/BalajiBaluP/RAG_Debate) hosted on HF Free tier which **sleeps after inactivity**. If you see errors on first run, wait 30 seconds and re-run — the Space wakes automatically. Scores on retry will be normal.
+
+## Your app needs one endpoint
+
+```json
+POST /your-endpoint
+{ "question": "..." }
+
+→ { "answer": "...", "contexts": ["chunk1", "chunk2"] }
+```
+
+---
+
+## How to use
+
+1. **Datasets** — Paste test questions as JSON
+2. **New Run** — Enter your app URL, start evaluation
+3. **Results** — Scores per question, inspect failures
+4. **Leaderboard** — Compare prompt versions side by side
+
+---
+
+## Score guide
+
+| Score | Meaning |
+|---|---|
+| >70% | Working well |
+| 40-70% | Needs prompt tuning |
+| <40% | Something broken |
+
+---
+
+## Structure
+
+```
+agenteval-studio/
+├── app/
+│   ├── api/          ← dataset + run endpoints
+│   ├── core/         ← metrics, runner, evaluator
+│   └── models/       ← DB + schemas
+├── ui/
+│   └── streamlit_app.py
+├── datasets/
+├── Dockerfile
+└── start.sh
+```
+
+---
+
+## Related
+
+- [RAG Debate Arena](https://huggingface.co/spaces/BalajiBaluP/RAG_Debate) — AI app evaluated using this studio
+
+*Built by [Balaji Parlapalli](https://github.com/BalajiParlapalli)*

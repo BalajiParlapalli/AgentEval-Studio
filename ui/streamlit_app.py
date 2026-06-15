@@ -346,6 +346,7 @@ elif page == "🚀 New Run":
             pass_threshold = st.slider("Pass threshold (overall score)", 0.0, 1.0, 0.6, 0.05)
             st.caption("🔐 LLM judge key set via HF Space secret: GROQ_API_KEY (Groq) or GEMINI_API_KEY (Gemini AIzaSy).")
 
+        st.warning("⚠️ If your target app is on HF Free tier, it sleeps after inactivity. The first run may show 1-2 errors — this is normal. Wait 30 seconds and re-run immediately.")
         st.markdown("**Target API contract** — your RAG app should accept:")
         st.code('POST /your/endpoint\n{"question": "...", "app_version": "..."}\n→ {"answer": "...", "contexts": ["chunk1", ...], "token_count": 123}', language="json")
 
