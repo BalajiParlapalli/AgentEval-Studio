@@ -1,3 +1,15 @@
+---
+title: AgentEval Studio
+emoji: 🧪
+colorFrom: indigo
+colorTo: purple
+sdk: docker
+sdk_version: "3.10"
+pinned: false
+license: mit
+short_description: Eval dashboard for RAG apps and AI agents
+---
+
 # 🧪 AgentEval Studio
 
 > Open-source evaluation and observability dashboard for RAG apps and AI agents.
